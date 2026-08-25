@@ -455,6 +455,7 @@ local defaults = {
                 show_on_hover = false,
                 show_in_combat = false,
                 visibility_logic = "and",
+                columns = 10, -- Pet action slots per row (1 = vertical stack)
             },
             vehicle = {
                 x_position = -40,
@@ -1122,7 +1123,7 @@ local defaults = {
                 show_all_realms = true, -- Include characters from other realms in the list
             },
             unitframe_layers = {
-                enabled = false, -- Heal prediction, absorb shields, animated health loss overlays on unit frames
+                enabled = true, -- Heal prediction, absorb shields, animated health loss overlays on unit frames
                 animated_loss = true, -- Animated red health loss bar on player frame
                 builder_spender = false, -- Mana gain/loss glow feedback (experimental)
                 missing_health = false -- Show missing health deficit text on health bars

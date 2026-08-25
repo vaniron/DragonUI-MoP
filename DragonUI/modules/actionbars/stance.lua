@@ -76,7 +76,9 @@ local stance = {
 	['PRIEST'] = '[vehicleui] hide; show',
 	['ROGUE'] = '[vehicleui] hide; show',
 	['WARLOCK'] = '[vehicleui] hide; show',
-	['WARRIOR'] = '[vehicleui] hide; show'
+	['WARRIOR'] = '[vehicleui] hide; show',
+	['MONK'] = '[vehicleui] hide; show',
+	['HUNTER'] = '[vehicleui] hide; show'
 };
 
 -- Module frames (created only when enabled)

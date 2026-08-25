@@ -1745,7 +1745,7 @@ function CastbarModule:RefreshCastbar(unitType)
                 relativePoint = "BOTTOMLEFT"
                 xPos = 25
                 yPos = GetCompanionSpacingYOffset("target", TargetFrame, extraAuraOffset)
-            elseif auraAnchor then
+            elseif (not TargetFrame.buffsOnTop) and auraAnchor then
                 anchorFrame = (isDetached and TargetFrame and TargetFrame.spellbarAnchor) and TargetFrame.spellbarAnchor or auraAnchor
                 anchorPoint = "TOPLEFT"
                 relativePoint = "BOTTOMLEFT"
@@ -1831,7 +1831,7 @@ function CastbarModule:RefreshCastbar(unitType)
                 relativePoint = "BOTTOMLEFT"
                 xPos = 25
                 yPos = GetCompanionSpacingYOffset("focus", FocusFrame, extraAuraOffset)
-            elseif auraAnchor then
+            elseif (not FocusFrame.buffsOnTop) and auraAnchor then
                 anchorFrame = (isDetached and FocusFrame and FocusFrame.spellbarAnchor) and FocusFrame.spellbarAnchor or auraAnchor
                 anchorPoint = "TOPLEFT"
                 relativePoint = "BOTTOMLEFT"

@@ -262,6 +262,16 @@ local function ShouldHidePartyFramesInRaid()
 end
 
 local function ShouldPartyFramesBeVisible()
+    -- Battlegrounds/arenas: leave only the native raid panel visible.
+    local _, instanceType = IsInInstance()
+    if instanceType == "pvp" or instanceType == "arena" then
+        return false
+    end
+    -- Groups larger than a 5-man party are raids even if IsInRaid() is unreliable
+    -- on this private server.
+    if IsInGroup() and GetNumGroupMembers() > 5 then
+        return false
+    end
     return addon.GetNumPartyMembers() > 0 and not IsCompactPartyFramesEnabled() and not ShouldHidePartyFramesInRaid()
 end
 

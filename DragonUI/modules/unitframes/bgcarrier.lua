@@ -36,6 +36,40 @@ local FRAME_WIDTH = 232
 local FRAME_HEIGHT = 75
 local FRAME_SPACING = 2
 
+-- Faction-colored name-background gradient (same texture + texcoords as the
+-- target frame): green for allies, red for enemies, yellow for neutral.
+local NAME_BG_PTR_TEXTURE = "Interface\\AddOns\\DragonUI\\Textures\\UnitFrames\\Target\\UIUnitFrame2x_PTR"
+local NAME_BG_TEX_COORDS = {
+    green = { 536 / 1024, 804 / 1024, 135 / 512, 166 / 512 },
+    red   = { 536 / 1024, 804 / 1024, 168 / 512, 199 / 512 },
+    yellow = { 266 / 1024, 534 / 1024, 201 / 512, 232 / 512 },
+}
+local NAME_BG_COLOR_PALETTE = {
+    green = { 0.0, 1.0, 0.0 },
+    red   = { 1.0, 0.0, 0.0 },
+    yellow = { 1.0, 1.0, 0.0 },
+}
+
+local function ResolveNameBackgroundColorKey(r, g, b)
+    if not r or not g or not b then
+        return "yellow"
+    end
+
+    local bestKey, bestDist = "yellow", 10
+    for key, p in pairs(NAME_BG_COLOR_PALETTE) do
+        local dr = r - p[1]
+        local dg = g - p[2]
+        local db = b - p[3]
+        local dist = dr * dr + dg * dg + db * db
+        if dist < bestDist then
+            bestDist = dist
+            bestKey = key
+        end
+    end
+
+    return bestKey
+end
+
 -- Common MoP PvP crowd-control / loss-of-control spell IDs (matched against
 -- the spellId returned by UnitAura on the carrier's debuffs).
 -- Extended with the LoseControl spell list (CC, Silence, Disarm and Root).
@@ -312,6 +346,18 @@ local function ApplyHealthBarStyle(frame, unit, config)
     end
 end
 
+-- Colors the name-background gradient by the carrier's reaction: green for
+-- allies, red for enemies, yellow for neutral. Mirrors the target frame.
+local function ApplyNameBGFaction(frame, unit)
+    if not frame or not frame.nameBG or not unit then return end
+
+    local r, g, b = UnitSelectionColor(unit)
+    local colorKey = ResolveNameBackgroundColorKey(r, g, b)
+    local coords = NAME_BG_TEX_COORDS[colorKey] or NAME_BG_TEX_COORDS.yellow
+
+    frame.nameBG:SetTexCoord(unpack(coords))
+end
+
 -- ============================================================================
 -- FRAME CONSTRUCTION
 -- ============================================================================
@@ -371,7 +417,7 @@ local function CreateCarrierFrame(index)
 
     -- Name background
     local nameBG = carrier:CreateTexture(nil, "BORDER", nil, 1)
-    nameBG:SetTexture(TEXTURES.NAME_BACKGROUND)
+    nameBG:SetTexture(NAME_BG_PTR_TEXTURE)
     nameBG:SetBlendMode("ADD")
     nameBG:SetSize(135, 18)
     nameBG:SetPoint("BOTTOMLEFT", healthBar, "TOPLEFT", -2, -5)
@@ -590,6 +636,7 @@ local function UpdateCarrier(index)
     else
         frame.nameText:SetTextColor(1, 0.82, 0, 1)
     end
+    ApplyNameBGFaction(frame, unit)
     frame.nameBG:Show()
 
     -- Faction icon (carriers are always enemy faction in BG)
@@ -769,6 +816,7 @@ local function SetupEditorMode()
                     else
                         frame.nameText:SetTextColor(1, 0.82, 0, 1)
                     end
+                    frame.nameBG:SetTexCoord(unpack(NAME_BG_TEX_COORDS.green))
                     frame.nameBG:Show()
                     frame.factionIcon:SetTexture("Interface\\TargetingFrame\\UI-PVP-Horde")
                     frame.factionIcon:Show()

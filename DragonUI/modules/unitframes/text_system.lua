@@ -265,8 +265,8 @@ function TextSystem.UpdateFrameText(frameType, unit, parentFrame, healthBar, man
     -- Use dynamic unit from textSystem if available, otherwise use passed unit
     local actualUnit = (textSystemRef and textSystemRef.unit) or unit
     
-    --  CHECK IF THE UNIT EXISTS AND IS ALIVE
-    if not UnitExists(actualUnit) or UnitIsDeadOrGhost(actualUnit) then
+    --  CHECK IF THE UNIT EXISTS
+    if not UnitExists(actualUnit) then
         return TextSystem.ClearFrameText(parentFrame, prefix)
     end
 

@@ -83,7 +83,16 @@ end
 -- ============================================================================
 
 local function UFL_UnitGetIncomingHeals(unit, healer)
-	if not (unit and HealComm) then return end
+	if not unit then return end
+
+	-- MoP 5.4.8 native API. LibHealComm-4.0 is WotLK-only and not loaded, so
+	-- prefer the built-in call that Blizzard itself uses in UnitFrame.lua.
+	if UnitGetIncomingHeals then
+		return UnitGetIncomingHeals(unit, healer);
+	end
+
+	-- Fallback for clients exposing LibHealComm (kept for parity with the WotLK fork).
+	if not HealComm then return end
 	if healer then
 		return HealComm:GetCasterHealAmount(UnitGUID(healer), HealComm.CASTED_HEALS, GetTime() + 5);
 	else
@@ -92,7 +101,14 @@ local function UFL_UnitGetIncomingHeals(unit, healer)
 end
 
 local function UFL_UnitGetTotalAbsorbs(unit)
-	if not (unit and LibAbsorb) then return end
+	if not unit then return end
+
+	-- MoP 5.4.8 native API. AbsorbsMonitor-1.0 is WotLK-only and not loaded.
+	if UnitGetTotalAbsorbs then
+		return UnitGetTotalAbsorbs(unit);
+	end
+
+	if not LibAbsorb then return end
 	return LibAbsorb.Unit_Total(UnitGUID(unit));
 end
 

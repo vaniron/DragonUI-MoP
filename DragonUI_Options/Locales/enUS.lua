@@ -700,6 +700,7 @@ L["Fade the stance bar until you enter combat."] = true
 L["Fade the pet bar until you hover over it."] = true
 L["Fade the pet bar until you enter combat."] = true
 L["Show the button frame on pet slots with no ability assigned."] = true
+L["Pet action buttons per row."] = true
 L["Fade the totem bar until you hover over it."] = true
 L["Fade the totem bar until you enter combat."] = true
 L["Fade the minimap until you hover over it."] = true

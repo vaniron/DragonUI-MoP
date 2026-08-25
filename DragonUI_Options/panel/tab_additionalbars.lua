@@ -101,6 +101,17 @@ local function BuildAdditionalBarsTab(scroll)
         end,
     })
 
+    C:AddSlider(pet, {
+        label = LO["Columns"],
+        desc = LO["Pet action buttons per row."],
+        dbPath = "additional.pet.columns",
+        min = 1, max = 10, step = 1,
+        width = 200,
+        callback = function()
+            if addon.RefreshPetbarFrame then addon.RefreshPetbarFrame() end
+        end,
+    })
+
     C:AddHeading(pet, LO["Visibility"])
     C:AddVisibilityFadeToggles(pet, {
         dbPrefix = "additional.pet",

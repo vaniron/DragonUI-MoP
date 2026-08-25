@@ -63,7 +63,8 @@ local function GetDynamicConfig()
         size = 30,
         spacing = 6,
         grid = false,
-        scale = 1.0
+        scale = 1.0,
+        columns = 10
     }
     
     if not petConfig then return defaults end
@@ -77,13 +78,26 @@ local function GetDynamicConfig()
         size = petConfig.size or (additionalConfig and additionalConfig.size) or defaults.size,
         spacing = petConfig.spacing or (additionalConfig and additionalConfig.spacing) or defaults.spacing,
         grid = petConfig.grid or defaults.grid,
-        scale = (additionalConfig and additionalConfig.pet and additionalConfig.pet.scale) or defaults.scale
+        scale = (additionalConfig and additionalConfig.pet and additionalConfig.pet.scale) or defaults.scale,
+        columns = petConfig.columns or defaults.columns
     }
 end
 
 -- ============================================================================
 -- DUAL-BAR OFFSET HELPER
 -- ============================================================================
+
+-- Grid layout: columns from config (clamped to available slots); rows auto.
+local function Petbar_GetGridLayout(config)
+    local columns = math.max(1, math.min(10, tonumber(config.columns) or 10))
+    local rows = math.ceil(10 / columns)
+    return columns, rows
+end
+
+-- Pixel step between adjacent slots (size + spacing).
+local function Petbar_GetStep(config)
+    return (config.size or 30) + (config.spacing or 6)
+end
 
 -- Get dual-bar vertical offset for petbar (only when at default position)
 local function GetPetbarDualBarOffset()
@@ -108,9 +122,9 @@ local function CreateAnchorFrame()
     -- Calculate proper petbar size based on config
     local btnsize = config.size or 30
     local space = config.spacing or 6
-    local numButtons = 10
-    local petbarWidth = (btnsize * numButtons) + (space * (numButtons - 1))
-    local petbarHeight = btnsize
+    local columns, rows = Petbar_GetGridLayout(config)
+    local petbarWidth = (btnsize * columns) + (space * (columns - 1))
+    local petbarHeight = (btnsize * rows) + (space * (rows - 1))
     
     -- Reuse the named global if it exists — recreating via CreateFrame resets alpha to 1.
     local anchor = _G.DragonUI_petbar or addon.CreateUIFrame(petbarWidth, petbarHeight, "petbar")
@@ -222,7 +236,21 @@ local function petbutton_updatestate(self, event)
     
     local config = GetDynamicConfig()
     local petActionButton, petActionIcon, petAutoCastableTexture, petAutoCastShine
-    
+
+    -- Empty-slot visibility is owned by the NATIVE PetActionBar_Update / ShowGrid /
+    -- HideGrid chain, which uses Show()/Hide() gated on PetActionBarFrame.showgrid.
+    -- We must mirror Show/Hide (not SetAlpha) because Hide() overrides any alpha:
+    -- using SetAlpha here is exactly what broke the drag reveal. The only override
+    -- is the "Show Empty Slots" (config.grid) option, which Show()s empties after
+    -- the native code has hidden them.
+    --
+    -- Private-server 5.4.8 quirk: PET_BAR_SHOWGRID fires as an event but the native
+    -- PetActionBar_ShowGrid() never increments showgrid, so the native reveal never
+    -- runs. Detect an in-progress pet-action drag via the cursor instead; our hook
+    -- runs AFTER the native Hide(), so Show()ing here overrides it and reveals empties.
+    local showGrid = (PetActionBarFrame and PetActionBarFrame.showgrid and PetActionBarFrame.showgrid > 0)
+    local dragging = (select(1, GetCursorInfo()) == 'petaction')
+
     for index=1, NUM_PET_ACTION_SLOTS, 1 do
         local buttonName = 'PetActionButton'..index
         petActionButton = _G[buttonName]
@@ -262,12 +290,15 @@ local function petbutton_updatestate(self, event)
             else
                 AutoCastShine_AutoCastStop(petAutoCastShine)
             end
-            -- Always set explicitly (not just when hiding) so toggling "grid" live re-shows
-            -- slots that a previous pass already faded to 0 — otherwise it needs a /reload.
-            if config.grid or name then
-                petActionButton:SetAlpha(1)
+            -- Empty slots: native code Hide()s them when showgrid == 0. Use Show/Hide
+            -- (not alpha) so we stay compatible with the native drag reveal, and so the
+            -- "Show Empty Slots" toggle actually re-Shows slots the native code hid.
+            if name then
+                petActionButton:Show()
+            elseif config.grid or showGrid or dragging then
+                petActionButton:Show()
             else
-                petActionButton:SetAlpha(0)
+                petActionButton:Hide()
             end
             if texture then
                 if GetPetActionSlotUsable(index) then
@@ -308,7 +339,8 @@ local function petbutton_position()
     
     local config = GetDynamicConfig()
     local btnsize = config.size
-    local space = config.spacing
+    local columns = Petbar_GetGridLayout(config)
+    local step = Petbar_GetStep(config)
     
     local button
     for index=1, 10 do
@@ -317,11 +349,9 @@ local function petbutton_position()
             button:ClearAllPoints()
             button:SetParent(petbar)
             button:SetSize(btnsize, btnsize)
-            if index == 1 then
-                button:SetPoint('BOTTOMLEFT', 0, 0)
-            else
-                button:SetPoint('LEFT', _G['PetActionButton'..(index-1)], 'RIGHT', space, 0)
-            end
+            local row = math.floor((index - 1) / columns)
+            local col = (index - 1) % columns
+            button:SetPoint('BOTTOMLEFT', petbar, 'BOTTOMLEFT', col * step, row * step)
             button:Show()
             petbar:SetAttribute('addchild', button)
             
@@ -391,6 +421,9 @@ local function CreateEventFrame()
             petbutton_updatestate()
         elseif event == 'PET_BAR_UPDATE_COOLDOWN' then
             PetActionBar_UpdateCooldowns()
+        elseif event == 'CURSOR_UPDATE' or event == 'UPDATE_PET_ACTIONBAR' then
+            -- Reveal/hide empty slots while dragging a pet action (see petbutton_updatestate).
+            petbutton_updatestate()
         end
         
         -- Update anchor position for dynamic positioning
@@ -411,7 +444,9 @@ local function CreateEventFrame()
         'PLAYER_LOGIN',
         'UNIT_AURA',
         'UNIT_FLAGS',
-        'UNIT_PET'
+        'UNIT_PET',
+        'CURSOR_UPDATE',
+        'UPDATE_PET_ACTIONBAR'
     }
     
     for _, event in ipairs(events) do
@@ -461,9 +496,9 @@ local function UpdateEditorFrameRegistration()
         local config = GetDynamicConfig()
         local btnsize = config.size or 30
         local space = config.spacing or 6
-        local numButtons = 10
-        local petbarWidth = (btnsize * numButtons) + (space * (numButtons - 1))
-        local petbarHeight = btnsize
+        local columns, rows = Petbar_GetGridLayout(config)
+        local petbarWidth = (btnsize * columns) + (space * (columns - 1))
+        local petbarHeight = (btnsize * rows) + (space * (rows - 1))
         
         PetbarModule.anchor:SetSize(petbarWidth, petbarHeight)
     end
@@ -641,7 +676,7 @@ function addon.RefreshPetbarSystem()
     end
 end
 
--- Re-runs the per-slot alpha logic after the "Show Empty Slots" (grid) toggle changes.
+-- Re-runs the per-slot Show/Hide logic after the "Show Empty Slots" (grid) toggle changes.
 function addon.RefreshPetbarGrid()
     if not IsModuleEnabled() then return end
     petbutton_updatestate()
@@ -662,9 +697,9 @@ function addon.RefreshPetbarFrame()
     local config = GetDynamicConfig()
     local btnsize = config.size or 30
     local space = config.spacing or 6
-    local numButtons = 10
-    local petbarWidth = (btnsize * numButtons) + (space * (numButtons - 1))
-    local petbarHeight = btnsize
+    local columns, rows = Petbar_GetGridLayout(config)
+    local petbarWidth = (btnsize * columns) + (space * (columns - 1))
+    local petbarHeight = (btnsize * rows) + (space * (rows - 1))
     
     PetbarModule.anchor:SetSize(petbarWidth, petbarHeight)
     
