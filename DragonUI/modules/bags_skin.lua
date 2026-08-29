@@ -840,31 +840,8 @@ local function InstallUnusableTintHooks()
     local levelFrame = CreateFrame("Frame")
     levelFrame:RegisterEvent("PLAYER_LEVEL_UP")
     levelFrame:RegisterEvent("SPELLS_CHANGED")
-    levelFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    local function ClearAllNewItemsManually()
-        if not C_NewItems or not C_NewItems.IsNewItem or not C_NewItems.RemoveNewItem then return end
-        for bag = 0, 4 do
-            local numSlots = GetContainerNumSlots(bag)
-            if numSlots and numSlots > 0 then
-                for slot = 1, numSlots do
-                    if C_NewItems.IsNewItem(bag, slot) then
-                        C_NewItems.RemoveNewItem(bag, slot)
-                    end
-                end
-            end
-        end
-    end
 
     levelFrame:SetScript("OnEvent", function(_, event)
-        if event == "PLAYER_ENTERING_WORLD" then
-            ClearAllNewItemsManually()
-            if addon and addon.After then
-                addon:After(2, ClearAllNewItemsManually)
-                addon:After(5, ClearAllNewItemsManually)
-                addon:After(10, ClearAllNewItemsManually)
-            end
-            return
-        end
         if event == "SPELLS_CHANGED" then
             if addon.ClearUnusableItemTintCache then
                 addon:ClearUnusableItemTintCache()
