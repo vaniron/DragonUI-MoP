@@ -356,9 +356,8 @@ local function BuildBagsTab(scroll)
     })
 
     C:AddToggle(tintSection, {
-        label = LO["Hide New Item Glow"] or "Hide New Item Glow",
-        desc = LO["Completely disables the white 'New Item' highlight on bag slots. Turn this on if you are playing on a server with the bug where all items glow every time you log in."]
-            or "Completely disables the white 'New Item' highlight on bag slots. Turn this on if you are playing on a server with the bug where all items glow every time you log in.",
+        label = "Hide New Item Glow",
+        desc = "Completely disables the white 'New Item' highlight on bag slots. Turn this on if you are playing on a server with the bug where all items glow every time you log in.",
         getFunc = function()
             local bags = addon.db and addon.db.profile and addon.db.profile.bags
             if not bags or bags.hide_new_items == nil then return true end
