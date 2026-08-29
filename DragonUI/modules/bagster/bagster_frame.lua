@@ -217,13 +217,13 @@ local function SetupBagToggle(btn, parentFrame)
     end)
     btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-    btn:SetHighlightTexture("")
-    local ht = btn:GetHighlightTexture()
+    local ht = btn:CreateTexture(nil, "HIGHLIGHT")
     ht:SetAllPoints()
     ht:SetBlendMode("ADD")
     ht:SetAlpha(0.4)
     ht:SetTexture(mod.CT.bagslot)
     ht:SetTexCoord(358 / 512, 419 / 512, 1 / 128, 62 / 128)
+    btn:SetHighlightTexture(ht)
 end
 
 -- Replaces DragonUI_BagsterInventoryTemplate entirely
