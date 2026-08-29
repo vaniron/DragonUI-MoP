@@ -293,12 +293,16 @@ local function petbutton_updatestate(self, event)
             -- Empty slots: native code Hide()s them when showgrid == 0. Use Show/Hide
             -- (not alpha) so we stay compatible with the native drag reveal, and so the
             -- "Show Empty Slots" toggle actually re-Shows slots the native code hid.
-            if name then
-                petActionButton:Show()
-            elseif config.grid or showGrid or dragging then
-                petActionButton:Show()
+            if not InCombatLockdown() then
+                if name then
+                    petActionButton:Show()
+                elseif config.grid or showGrid or dragging then
+                    petActionButton:Show()
+                else
+                    petActionButton:Hide()
+                end
             else
-                petActionButton:Hide()
+                addon.CombatQueue:Add("petbar_updatestate_showhide", petbutton_updatestate)
             end
             if texture then
                 if GetPetActionSlotUsable(index) then
