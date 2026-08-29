@@ -343,6 +343,34 @@ local function SkinItemButton(button, bankSlot)
     if stock then
         stock:SetDrawLayer("BORDER")
     end
+
+    -- Permanently disable the New Item Glow bug on private servers
+    local bagsConfig = addon.db and addon.db.profile and addon.db.profile.bags
+    local hideNewItems = true
+    if bagsConfig and bagsConfig.hide_new_items ~= nil then
+        hideNewItems = bagsConfig.hide_new_items
+    end
+
+    if hideNewItems then
+        local newItemTexture = _G[name .. "NewItemTexture"]
+        if newItemTexture then
+            newItemTexture:Hide()
+            newItemTexture.Show = function() end
+        end
+        local battlepayItemTexture = _G[name .. "BattlepayItemTexture"]
+        if battlepayItemTexture then
+            battlepayItemTexture:Hide()
+            battlepayItemTexture.Show = function() end
+        end
+        if button.newitemglowAnim then
+            button.newitemglowAnim:Stop()
+            button.newitemglowAnim.Play = function() end
+        end
+        if button.flashAnim then
+            button.flashAnim:Stop()
+            button.flashAnim.Play = function() end
+        end
+    end
 end
 
 local function HideClassicBackgrounds(frame)
@@ -812,7 +840,31 @@ local function InstallUnusableTintHooks()
     local levelFrame = CreateFrame("Frame")
     levelFrame:RegisterEvent("PLAYER_LEVEL_UP")
     levelFrame:RegisterEvent("SPELLS_CHANGED")
+    levelFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    local function ClearAllNewItemsManually()
+        if not C_NewItems or not C_NewItems.IsNewItem or not C_NewItems.RemoveNewItem then return end
+        for bag = 0, 4 do
+            local numSlots = GetContainerNumSlots(bag)
+            if numSlots and numSlots > 0 then
+                for slot = 1, numSlots do
+                    if C_NewItems.IsNewItem(bag, slot) then
+                        C_NewItems.RemoveNewItem(bag, slot)
+                    end
+                end
+            end
+        end
+    end
+
     levelFrame:SetScript("OnEvent", function(_, event)
+        if event == "PLAYER_ENTERING_WORLD" then
+            ClearAllNewItemsManually()
+            if addon and addon.After then
+                addon:After(2, ClearAllNewItemsManually)
+                addon:After(5, ClearAllNewItemsManually)
+                addon:After(10, ClearAllNewItemsManually)
+            end
+            return
+        end
         if event == "SPELLS_CHANGED" then
             if addon.ClearUnusableItemTintCache then
                 addon:ClearUnusableItemTintCache()
