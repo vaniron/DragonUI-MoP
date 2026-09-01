@@ -424,7 +424,7 @@ local function CreateCarrierFrame(index)
 
     -- Name text
     local nameText = carrier:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    nameText:SetPoint("BOTTOM", healthBar, "TOP", 4, 3)
+    nameText:SetPoint("BOTTOM", healthBar, "TOP", 4, 1)
 
     -- Faction icon (top-right, next to the portrait)
     local factionIcon = carrier:CreateTexture(nil, "OVERLAY", nil, 7)
@@ -568,16 +568,18 @@ local function UpdateCarrierBars(index)
     local textFormat = (config and config.textFormat) or "both"
     local breakUp = config and config.breakUpLargeNumbers
 
-    -- Health text
+    -- Health text. The "Dead" label only appears when the numeric health value
+    -- isn't visible (showHealthText off); with it on, the formatted value stays
+    -- visible even while dead, matching the target/party text system.
+    local dead = UnitIsDeadOrGhost(unit)
     if showText then
-        if UnitIsDeadOrGhost(unit) then
-            frame.healthText:SetText(DEAD)
-            frame.healthText:SetTextColor(1, 0, 0, 1)
-        else
-            local healthFormatted = addon.TextSystem.FormatStatusText(hp, hpMax, textFormat, breakUp)
-            frame.healthText:SetText(FormatSingleLine(healthFormatted, textFormat))
-            frame.healthText:SetTextColor(1, 1, 1, 1)
-        end
+        local healthFormatted = addon.TextSystem.FormatStatusText(hp, hpMax, textFormat, breakUp)
+        frame.healthText:SetText(FormatSingleLine(healthFormatted, textFormat))
+        frame.healthText:SetTextColor(1, 1, 1, 1)
+        frame.healthText:Show()
+    elseif dead then
+        frame.healthText:SetText(DEAD)
+        frame.healthText:SetTextColor(1, 0, 0, 1)
         frame.healthText:Show()
     else
         frame.healthText:Hide()
@@ -935,7 +937,6 @@ eventsFrame:RegisterEvent("UNIT_MAXPOWER")
 
 local pollFrame = CreateFrame("Frame")
 pollFrame.elapsed = 0
-pollFrame.debugElapsed = 0
 pollFrame:SetScript("OnUpdate", function(self, dt)
     self.elapsed = self.elapsed + dt
     if self.elapsed < 0.1 then return end
@@ -945,20 +946,6 @@ pollFrame:SetScript("OnUpdate", function(self, dt)
 
     for i = 1, NUM_CARRIERS do
         UpdateCarrierBars(i)
-    end
-
-    -- TEMPORARY DEBUG: log raw health values to diagnose the stuck fill.
-    self.debugElapsed = (self.debugElapsed or 0) + dt
-    if self.debugElapsed >= 5 then
-        self.debugElapsed = 0
-        for i = 1, NUM_CARRIERS do
-            local unit = "arena" .. i
-            if UnitExists(unit) then
-                print("|cff33ff99[bgcarrier]|r", unit,
-                    "hp=" .. tostring(UnitHealth(unit)),
-                    "max=" .. tostring(UnitHealthMax(unit)))
-            end
-        end
     end
 end)
 
