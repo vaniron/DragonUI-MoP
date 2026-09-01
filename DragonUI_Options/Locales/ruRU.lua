@@ -377,6 +377,8 @@ L["Bagster Settings"] = "Настройки Bagster"
 L["Item Usability"] = "Пригодность предметов"
 L["Tint Unusable Items"] = "Подсвечивать непригодные предметы"
 L["Color icons red for gear and usable items your character cannot equip or use (wrong armor type, level, class, etc.)."] = "Окрашивает красным иконки экипировки и используемых предметов, которые персонаж не может надеть или использовать (неверный тип брони, уровень, класс и т.д.)."
+L["Hide New Item Glow"] = "Скрывать свечение новых предметов"
+L["Completely disables the white 'New Item' highlight on bag slots. Turn this on if you are playing on a server with the bug where all items glow every time you log in."] = "Полностью отключает белое свечение «Новый предмет» на ячейках сумок. Включите, если играете на сервере с ошибкой, из-за которой все предметы светятся при каждом входе в игру."
 
 -- Bag Sort
 L["Bag Sort"] = "Сортировка сумок"

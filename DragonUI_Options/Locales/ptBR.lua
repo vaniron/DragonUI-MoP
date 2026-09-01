@@ -649,6 +649,8 @@ L["Fire abilities on key press instead of key release."] = "Ativa habilidades ao
 L["Item Usability"] = "Usabilidade de itens"
 L["Tint Unusable Items"] = "Colorir itens inutilizáveis"
 L["Color icons red for gear and usable items your character cannot equip or use (wrong armor type, level, class, etc.)."] = "Colore de vermelho os ícones de equipamento e itens usáveis que seu personagem não pode equipar ou usar (tipo de armadura, nível, classe, etc.)."
+L["Hide New Item Glow"] = "Ocultar brilho de itens novos"
+L["Completely disables the white 'New Item' highlight on bag slots. Turn this on if you are playing on a server with the bug where all items glow every time you log in."] = "Desativa completamente o brilho branco de 'Item Novo' nos espaços das bolsas. Ative esta opção se você joga em um servidor com o bug onde todos os itens brilham toda vez que você entra no jogo."
 
 -- Bag Sort
 L["Fill Bank Stacks from Bags"] = "Completar pilhas do banco com a bolsa"

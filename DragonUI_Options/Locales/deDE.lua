@@ -372,6 +372,8 @@ L["Bagster Settings"] = "Bagster (Kombi-Beutel) Einstellungen"
 L["Item Usability"] = "Gegenstandsverwendbarkeit"
 L["Tint Unusable Items"] = "Nicht verwendbare Gegenstände einfärben"
 L["Color icons red for gear and usable items your character cannot equip or use (wrong armor type, level, class, etc.)."] = "Färbt Symbole rot für Ausrüstung und benutzbare Gegenstände, die dein Charakter nicht anlegen oder verwenden kann (falscher Rüstungstyp, Stufe, Klasse usw.)."
+L["Hide New Item Glow"] = "Neuer-Gegenstand-Glühen ausblenden"
+L["Completely disables the white 'New Item' highlight on bag slots. Turn this on if you are playing on a server with the bug where all items glow every time you log in."] = "Deaktiviert das weiße 'Neuer Gegenstand'-Leuchten auf Beutelplätzen vollständig. Aktiviere dies, wenn du auf einem Server mit dem Fehler spielst, bei dem alle Gegenstände bei jedem Login leuchten."
 
 -- Bag Sort
 L["Bag Sort"] = "Taschen sortieren"

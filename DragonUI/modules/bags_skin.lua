@@ -343,6 +343,34 @@ local function SkinItemButton(button, bankSlot)
     if stock then
         stock:SetDrawLayer("BORDER")
     end
+
+    -- Permanently disable the New Item Glow bug on private servers
+    local bagsConfig = addon.db and addon.db.profile and addon.db.profile.bags
+    local hideNewItems = true
+    if bagsConfig and bagsConfig.hide_new_items ~= nil then
+        hideNewItems = bagsConfig.hide_new_items
+    end
+
+    if hideNewItems then
+        local newItemTexture = _G[name .. "NewItemTexture"]
+        if newItemTexture then
+            newItemTexture:Hide()
+            newItemTexture.Show = function() end
+        end
+        local battlepayItemTexture = _G[name .. "BattlepayItemTexture"]
+        if battlepayItemTexture then
+            battlepayItemTexture:Hide()
+            battlepayItemTexture.Show = function() end
+        end
+        if button.newitemglowAnim then
+            button.newitemglowAnim:Stop()
+            button.newitemglowAnim.Play = function() end
+        end
+        if button.flashAnim then
+            button.flashAnim:Stop()
+            button.flashAnim.Play = function() end
+        end
+    end
 end
 
 local function HideClassicBackgrounds(frame)
@@ -812,6 +840,7 @@ local function InstallUnusableTintHooks()
     local levelFrame = CreateFrame("Frame")
     levelFrame:RegisterEvent("PLAYER_LEVEL_UP")
     levelFrame:RegisterEvent("SPELLS_CHANGED")
+
     levelFrame:SetScript("OnEvent", function(_, event)
         if event == "SPELLS_CHANGED" then
             if addon.ClearUnusableItemTintCache then

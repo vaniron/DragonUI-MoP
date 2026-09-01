@@ -653,6 +653,8 @@ L["Fire abilities on key press instead of key release."] = "Active les sorts à 
 L["Item Usability"] = "Utilisabilité des objets"
 L["Tint Unusable Items"] = "Teinter les objets inutilisables"
 L["Color icons red for gear and usable items your character cannot equip or use (wrong armor type, level, class, etc.)."] = "Colore en rouge les icônes de l'équipement et des objets utilisables que votre personnage ne peut pas équiper ou utiliser (mauvais type d'armure, niveau, classe, etc.)."
+L["Hide New Item Glow"] = "Masquer le halo des nouveaux objets"
+L["Completely disables the white 'New Item' highlight on bag slots. Turn this on if you are playing on a server with the bug where all items glow every time you log in."] = "Désactive complètement le halo blanc « Nouvel objet » sur les emplacements de sacs. Activez cette option si vous jouez sur un serveur avec le bug où tous les objets brillent à chaque connexion."
 
 -- Bag Sort
 L["Fill Bank Stacks from Bags"] = "Compléter les piles de banque depuis les sacs"

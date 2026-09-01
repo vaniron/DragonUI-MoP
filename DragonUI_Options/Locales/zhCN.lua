@@ -350,6 +350,8 @@ L["Bagster Settings"] = "Bagster设置"
 L["Item Usability"] = "物品可用性"
 L["Tint Unusable Items"] = "标红不可用物品"
 L["Color icons red for gear and usable items your character cannot equip or use (wrong armor type, level, class, etc.)."] = "将角色无法装备或使用的装备和可用物品图标标为红色（错误的护甲类型、等级、职业等）。"
+L["Hide New Item Glow"] = "隐藏新物品高亮"
+L["Completely disables the white 'New Item' highlight on bag slots. Turn this on if you are playing on a server with the bug where all items glow every time you log in."] = "完全禁用背包栏位上的白色“新物品”高亮。如果你在每次登录时所有物品都会发光的服务器上游玩，请开启此选项。"
 
 -- 背包整理
 L["Bag Sort"] = "背包整理"

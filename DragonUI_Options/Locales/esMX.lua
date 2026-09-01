@@ -386,6 +386,8 @@ L["Bagster Settings"] = "Ajustes de Bagster"
 L["Item Usability"] = "Usabilidad de objetos"
 L["Tint Unusable Items"] = "Colorear objetos no usables"
 L["Color icons red for gear and usable items your character cannot equip or use (wrong armor type, level, class, etc.)."] = "Colorea de rojo el icono del equipo y objetos usables que tu personaje no puede equipar o usar (tipo de armadura, nivel, clase, etc.)."
+L["Hide New Item Glow"] = "Ocultar brillo de objetos nuevos"
+L["Completely disables the white 'New Item' highlight on bag slots. Turn this on if you are playing on a server with the bug where all items glow every time you log in."] = "Desactiva por completo el brillo blanco de 'Objeto Nuevo' en las ranuras de la bolsa. Actívalo si juegas en un servidor con el fallo de que todos los objetos brillan cada vez que inicias sesión."
 
 -- Bag Sort
 L["Bag Sort"] = "Ordenar Bolsas"

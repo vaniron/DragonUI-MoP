@@ -383,6 +383,8 @@ L["Bagster Settings"] = "Bagster 설정"
 L["Item Usability"] = "아이템 사용 가능 여부"
 L["Tint Unusable Items"] = "사용 불가 아이템 색칠"
 L["Color icons red for gear and usable items your character cannot equip or use (wrong armor type, level, class, etc.)."] = "캐릭터가 착용하거나 사용할 수 없는 장비 및 사용 아이템 아이콘을 빨간색으로 표시합니다 (잘못된 방어구 유형, 레벨, 직업 등)."
+L["Hide New Item Glow"] = "새 아이템 광택 숨기기"
+L["Completely disables the white 'New Item' highlight on bag slots. Turn this on if you are playing on a server with the bug where all items glow every time you log in."] = "가방 칸의 흰색 '새 아이템' 표시를 완전히 비활성화합니다. 로그인할 때마다 모든 아이템에 광택이 표시되는 버그가 있는 서버에서 플레이하는 경우 이 옵션을 켜세요."
 
 -- Bag Sort
 L["Bag Sort"] = "가방 정렬"

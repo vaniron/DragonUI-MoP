@@ -405,6 +405,8 @@ L["Bagster Settings"] = true
 L["Item Usability"] = true
 L["Tint Unusable Items"] = true
 L["Color icons red for gear and usable items your character cannot equip or use (wrong armor type, level, class, etc.)."] = true
+L["Hide New Item Glow"] = true
+L["Completely disables the white 'New Item' highlight on bag slots. Turn this on if you are playing on a server with the bug where all items glow every time you log in."] = true
 
 -- Alt Gold
 L["Alt Gold"] = true

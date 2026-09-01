@@ -181,6 +181,34 @@ do
             templateBorder:Hide()
         end
 
+        -- Permanently disable the New Item Glow bug on private servers
+        local bagsConfig = addon and addon.db and addon.db.profile and addon.db.profile.bags
+        local hideNewItems = true
+        if bagsConfig and bagsConfig.hide_new_items ~= nil then
+            hideNewItems = bagsConfig.hide_new_items
+        end
+
+        if hideNewItems then
+            local newItemTexture = _G[name .. "NewItemTexture"]
+            if newItemTexture then
+                newItemTexture:Hide()
+                newItemTexture.Show = function() end
+            end
+            local battlepayItemTexture = _G[name .. "BattlepayItemTexture"]
+            if battlepayItemTexture then
+                battlepayItemTexture:Hide()
+                battlepayItemTexture.Show = function() end
+            end
+            if item.newitemglowAnim then
+                item.newitemglowAnim:Stop()
+                item.newitemglowAnim.Play = function() end
+            end
+            if item.flashAnim then
+                item.flashAnim:Stop()
+                item.flashAnim.Play = function() end
+            end
+        end
+
         -- Quest item border (yellow overlay for quest items)
         local questBorder = item:CreateTexture(nil, "OVERLAY")
         questBorder:SetSize(item:GetWidth(), item:GetHeight())
