@@ -782,6 +782,29 @@ L["Latency Color"] = "Color de Latencia"
 L["Latency Alpha"] = "Opacidad de Latencia"
 L["Opacity of the latency indicator."] = "Opacidad del indicador de latencia."
 
+-- Channel tick marks
+L["Channel Tick Marks"] = "Marcas de Tick del Canal"
+L["Show Channel Tick Marks"] = "Mostrar marcas de tick del canal"
+L["Show tick separators on the bar while channeling."] = "Muestra separadores de tick en la barra mientras canalizas."
+L["Show tick flares on the bar while channeling."] = "Muestra llamaradas de tick en la barra mientras canalizas."
+L["Tick Color"] = "Color de la Marca"
+L["Tick Alpha"] = "Opacidad de la Marca"
+L["Glow intensity around each tick mark."] = "Intensidad del brillo alrededor de cada marca de tick."
+L["Flare intensity around each tick mark."] = "Intensidad de la llamarada alrededor de cada marca de tick."
+L["Tick Thickness"] = "Grosor de la Marca"
+L["Width of the tick core line in pixels."] = "Grosor en píxeles de la línea central de cada marca."
+L["Core line width; values below 1 draw a 1px hairline at proportional opacity."] = "Grosor de la línea central; valores bajo 1 dibujan una línea fina de 1px con opacidad proporcional."
+L["Glow Size"] = "Tamaño del Resplandor"
+L["Width of the soft halo around each tick mark."] = "Anchura del resplandor suave alrededor de cada marca."
+L["Width of the channel tick flare."] = "Anchura de la llamarada del tick de canalización."
+L["Mark Height"] = "Altura de la Marca"
+L["Tick height as a percentage of the cast bar height (min 20%)."] = "Altura de la marca como porcentaje del alto de la barra (mín. 20%)."
+L["Tick height as a percentage of the cast bar height (max 80%)."] = "Altura de la marca como porcentaje del alto de la barra (máx. 80%)."
+L["Vertical Alignment"] = "Alineación Vertical"
+L["Top"] = "Arriba"
+L["Center"] = "Centro"
+L["Bottom"] = "Abajo"
+
 -- ============================================================================
 -- ENHANCEMENTS TAB
 -- ============================================================================

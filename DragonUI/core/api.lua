@@ -10,7 +10,7 @@ These are general-purpose functions that can be used by any module.
 local addon = select(2, ...)
 local L = addon.L
 
-addon.DB_SCHEMA_VERSION = 5
+addon.DB_SCHEMA_VERSION = 8
 addon.RELEASE_VERSION = GetAddOnMetadata("DragonUI", "Version") or "2.5"
 
 -- ============================================================================
@@ -1323,6 +1323,15 @@ function addon:ApplyDatabaseMigrations()
     -- profile.chat had no readers left; clear stored values now that the default is gone.
     if rawget(profile, "chat") ~= nil then
         profile.chat = nil
+    end
+
+    -- Channel tick marks: switch untouched profiles to the finer Bartender-style
+    -- defaults (hairline core at 1px/50%, mark height 60%) exactly once.
+    local castbarCfg = rawget(profile, "castbar")
+    local cbt = castbarCfg and rawget(castbarCfg, "channelTicks")
+    if cbt and cbt.thickness == 1 and cbt.heightPct == 100 then
+        cbt.thickness = 0.5
+        cbt.heightPct = 60
     end
 
     -- Extra bar slots moved to db.char; drop the profile-wide leftovers so alts stop inheriting them.

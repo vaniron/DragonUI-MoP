@@ -849,6 +849,29 @@ L["Latency Color"] = true
 L["Latency Alpha"] = true
 L["Opacity of the latency indicator."] = true
 
+-- Channel tick marks
+L["Channel Tick Marks"] = true
+L["Show Channel Tick Marks"] = true
+L["Show tick separators on the bar while channeling."] = true
+L["Show tick flares on the bar while channeling."] = true
+L["Tick Color"] = true
+L["Tick Alpha"] = true
+L["Glow intensity around each tick mark."] = true
+L["Flare intensity around each tick mark."] = true
+L["Tick Thickness"] = true
+L["Width of the tick core line in pixels."] = true
+L["Core line width; values below 1 draw a 1px hairline at proportional opacity."] = true
+L["Glow Size"] = true
+L["Width of the soft halo around each tick mark."] = true
+L["Width of the channel tick flare."] = true
+L["Mark Height"] = true
+L["Tick height as a percentage of the cast bar height (min 20%)."] = true
+L["Tick height as a percentage of the cast bar height (max 80%)."] = true
+L["Vertical Alignment"] = true
+L["Top"] = true
+L["Center"] = true
+L["Bottom"] = true
+
 -- ============================================================================
 -- ENHANCEMENTS TAB
 -- ============================================================================
