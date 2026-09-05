@@ -1612,6 +1612,60 @@ do
     local TOKEN_ICON_SIZE = 16
     local TOKEN_GAP = 6
 
+    -- MoP currency IDs that should never show on the bag row: Honor Points (1)
+    -- and Conquest Points (396). The old WotLK "arena" slot is gone in MoP; the
+    -- backpack's first PvP slots are the tokens the user does not want displayed.
+    local HIDDEN_CURRENCY_IDS = { [1] = true, [396] = true }
+
+    local currencyIdByName
+    local currencyIconByName
+    local currencyIndexBuilt
+
+    -- Scan the currency list once (cached) so a backpack token can be resolved
+    -- to its currency id/icon even when GetBackpackCurrencyInfo returns no icon
+    -- (which is exactly what happens for the honor/conquest slots on 5.4.8).
+    local function RebuildCurrencyIndex()
+        currencyIndexBuilt = true
+        currencyIdByName, currencyIconByName = {}, {}
+        local ok, size = pcall(GetCurrencyListSize)
+        if not ok or type(size) ~= "number" then
+            return
+        end
+        for i = 1, size do
+            local name, isHeader, _, _, _, _, icon = GetCurrencyListInfo(i)
+            if type(name) == "string" and name ~= "" and not isHeader then
+                local link = GetCurrencyListLink(i)
+                local id = link and tonumber(strmatch(link, "^currency:(%d+)"))
+                if id then
+                    currencyIdByName[name] = id
+                end
+                if type(icon) == "string" and icon ~= "" then
+                    currencyIconByName[name] = icon
+                end
+            end
+        end
+    end
+
+    -- Return the texture to draw for a backpack token, or nil when the token
+    -- must be skipped (PvP currencies or an unresolvable icon).
+    local function ResolveTokenIcon(name, extraCurrencyType, icon)
+        if not currencyIndexBuilt then
+            RebuildCurrencyIndex()
+        end
+        local id = currencyIdByName[name]
+        if id and HIDDEN_CURRENCY_IDS[id] then
+            return nil
+        end
+        if type(icon) == "string" and icon ~= "" then
+            return icon
+        end
+        -- Legacy arena/honor special rows map to the MoP PvP tokens; hide them.
+        if extraCurrencyType == 1 or extraCurrencyType == 2 then
+            return nil
+        end
+        return currencyIconByName[name]
+    end
+
     -- The parent box (nineslice) provides the chrome; this bar only lays out token buttons
     function TokenBar:New(parent)
         local bar = self:Bind(CreateFrame("Frame", nil, parent))
@@ -1635,70 +1689,55 @@ do
     end
 
     function TokenBar:Refresh()
-        local numTokens = 0
         for i = 1, MAX_WATCHED_TOKENS do
             local name, count, extraCurrencyType, icon, itemID = GetBackpackCurrencyInfo(i)
+            local btn = self.tokenButtons[i]
             if name then
-                numTokens = numTokens + 1
-                local btn = self.tokenButtons[i]
+                local texture = ResolveTokenIcon(name, extraCurrencyType, icon)
                 if not btn then
                     btn = self:_CreateTokenButton(i)
                     self.tokenButtons[i] = btn
                 end
-                btn.extraCurrencyType = extraCurrencyType
-                btn.itemID = itemID
-
-                -- Icon selection (matches Blizzard BackpackTokenFrame logic)
-                if extraCurrencyType == 1 then
-                    btn.icon:SetTexture("Interface\\PVPFrame\\PVP-ArenaPoints-Icon")
+                if texture then
+                    btn.icon:SetTexture(texture)
                     btn.icon:SetTexCoord(0, 1, 0, 1)
-                elseif extraCurrencyType == 2 then
-                    local factionGroup = UnitFactionGroup("player")
-                    if factionGroup then
-                        btn.icon:SetTexture("Interface\\TargetingFrame\\UI-PVP-" .. factionGroup)
-                        btn.icon:SetTexCoord(0.03125, 0.59375, 0.03125, 0.59375)
+                    btn.icon:Show()
+                    btn.itemID = itemID
+                    if count and count > 99999 then
+                        btn.count:SetText("*")
                     else
-                        btn.icon:SetTexCoord(0, 1, 0, 1)
+                        btn.count:SetText(count or 0)
                     end
+                    btn:SetWidth(TOKEN_ICON_SIZE + 3 + btn.count:GetStringWidth() + 2)
+                    btn:Show()
                 else
-                    btn.icon:SetTexture(icon)
-                    btn.icon:SetTexCoord(0, 1, 0, 1)
-                end
-
-                if count <= 99999 then
-                    btn.count:SetText(count)
-                else
-                    btn.count:SetText("*")
-                end
-                btn:SetWidth(TOKEN_ICON_SIZE + 3 + btn.count:GetStringWidth() + 2)
-                btn:Show()
-            else
-                local btn = self.tokenButtons[i]
-                if btn then
                     btn:Hide()
                 end
+            elseif btn then
+                btn:Hide()
             end
         end
 
         -- Bare tokens laid left-to-right on the bottom band
-        if numTokens > 0 then
-            self._tokenCount = numTokens
-            local previous
-            for i = 1, MAX_WATCHED_TOKENS do
-                local btn = self.tokenButtons[i]
-                if btn and btn:IsShown() then
-                    btn:ClearAllPoints()
-                    if previous then
-                        btn:SetPoint("LEFT", previous, "RIGHT", TOKEN_GAP, 0)
-                    else
-                        btn:SetPoint("LEFT", self, "LEFT", 0, 0)
-                    end
-                    previous = btn
+        local shown = false
+        local previous
+        for i = 1, MAX_WATCHED_TOKENS do
+            local btn = self.tokenButtons[i]
+            if btn and btn:IsShown() then
+                shown = true
+                btn:ClearAllPoints()
+                if previous then
+                    btn:SetPoint("LEFT", previous, "RIGHT", TOKEN_GAP, 0)
+                else
+                    btn:SetPoint("LEFT", self, "LEFT", 0, 0)
                 end
+                previous = btn
             end
+        end
+        self._tokenCount = shown and MAX_WATCHED_TOKENS or 0
+        if shown then
             self:Show()
         else
-            self._tokenCount = 0
             self:Hide()
         end
     end
@@ -1720,19 +1759,13 @@ do
         btn.count:SetText("99999")
         btn:SetWidth(TOKEN_ICON_SIZE + 3 + btn.count:GetStringWidth() + 2)
 
-        -- Vanilla tooltip, same as Blizzard's BackpackTokenTemplate
+        -- Tooltip: link straight to the token item when the entry is an item,
+        -- otherwise show no tooltip (PvP currencies are hidden before this point).
         btn:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-            if self.extraCurrencyType == 1 then
-                GameTooltip:SetText(ARENA_POINTS, 1, 1, 1)
-                GameTooltip:AddLine(TOOLTIP_ARENA_POINTS, nil, nil, nil, 1)
-                GameTooltip:Show()
-            elseif self.extraCurrencyType == 2 then
-                GameTooltip:SetText(HONOR_POINTS, 1, 1, 1)
-                GameTooltip:AddLine(TOOLTIP_HONOR_POINTS, nil, nil, nil, 1)
-                GameTooltip:Show()
-            elseif self.itemID then
+            if self.itemID then
                 GameTooltip:SetHyperlink("item:" .. self.itemID)
+                GameTooltip:Show()
             end
         end)
         btn:SetScript("OnLeave", function()
