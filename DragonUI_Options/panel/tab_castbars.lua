@@ -175,6 +175,62 @@ local function AddCastbarControls(parent, dbPrefix, refreshFunc, opts)
 end
 
 -- ============================================================================
+-- CHANNEL TICK MARKS (shared across player/target/focus)
+-- ============================================================================
+
+local function AddChannelTickMarks(scroll, refresh)
+    local s = C:AddSection(scroll, LO["Channel Tick Marks"] or "Channel Tick Marks")
+
+    local function IsEnabled()
+        return C:GetDBValue("castbar.channelTicks.enabled")
+    end
+
+    C:AddToggle(s, {
+        label = LO["Show Channel Tick Marks"] or "Show Channel Tick Marks",
+        desc  = LO["Show tick flares on the bar while channeling."] or "Show tick flares on the bar while channeling.",
+        dbPath = "castbar.channelTicks.enabled",
+        callback = function()
+            refresh()
+            Panel:SelectTab("castbars")
+        end,
+    })
+
+    C:AddColorPicker(s, {
+        label = LO["Tick Color"] or "Tick Color",
+        dbPath = "castbar.channelTicks.color",
+        hasAlpha = false,
+        disabled = function()
+            return not IsEnabled()
+        end,
+        callback = refresh,
+    })
+
+    C:AddSlider(s, {
+        label = LO["Tick Alpha"] or "Tick Alpha",
+        desc  = LO["Flare intensity around each tick mark."] or "Flare intensity around each tick mark.",
+        dbPath = "castbar.channelTicks.alpha",
+        min = 0.05, max = 1.0, step = 0.05,
+        width = 200,
+        disabled = function()
+            return not IsEnabled()
+        end,
+        callback = refresh,
+    })
+
+    C:AddSlider(s, {
+        label = LO["Glow Size"] or "Glow Size",
+        desc  = LO["Width of the channel tick flare."] or "Width of the channel tick flare.",
+        dbPath = "castbar.channelTicks.glowSize",
+        min = 6, max = 48, step = 1,
+        width = 200,
+        disabled = function()
+            return not IsEnabled()
+        end,
+        callback = refresh,
+    })
+end
+
+-- ============================================================================
 -- SUB-TAB BUILDERS
 -- ============================================================================
 
@@ -231,6 +287,8 @@ local function BuildPlayerCastbar(scroll)
         end,
         callback = refresh,
     })
+
+    AddChannelTickMarks(scroll, refresh)
 end
 
 local function BuildTargetCastbar(scroll)
@@ -265,6 +323,8 @@ local function BuildTargetCastbar(scroll)
         sizeXMin = 50, sizeXMax = 400,
         sizeYMin = 5, sizeYMax = 50,
     })
+
+    AddChannelTickMarks(scroll, refresh)
 end
 
 local function BuildFocusCastbar(scroll)
@@ -299,6 +359,8 @@ local function BuildFocusCastbar(scroll)
         sizeXMin = 50, sizeXMax = 400,
         sizeYMin = 5, sizeYMax = 50,
     })
+
+    AddChannelTickMarks(scroll, refresh)
 end
 
 -- ============================================================================

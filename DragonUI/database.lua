@@ -567,6 +567,14 @@ local defaults = {
                 alpha = 0.45,
             },
 
+            -- CHANNEL TICK MARKS (Quartz-style flares shown at each tick while channeling)
+            channelTicks = {
+                enabled = true,
+                color = { r = 1, g = 0.82, b = 0.28 }, -- amber flare
+                alpha = 0.5, -- flare intensity (ADD, premultiplied)
+                glowSize = 20, -- flare width in pixels (Quartz default)
+            },
+
             -- TARGET CASTBAR SETTINGS
             target = {
                 enabled = true,
