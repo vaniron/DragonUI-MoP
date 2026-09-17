@@ -236,7 +236,7 @@ local function CreateInventoryFrame(name, parent)
     f:SetClampedToScreen(true)
     f:EnableMouse(true)
     f:SetMovable(true)
-    f:SetFrameStrata("HIGH")
+    f:SetFrameStrata("DIALOG")
     f:Hide()
     f:SetHitRectInsets(0, 35, 0, 75)
 
@@ -412,7 +412,8 @@ do
         f.nameFilter = _G[f:GetName() .. "Search"]
 
         f.qualityFilter = mod.QualityFilter:New(f)
-        f.qualityFilter:SetPoint("BOTTOM", 0, 9)
+        f.qualityFilter:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 14, 8)
+        f.qualityFilter:SetFrameLevel(f:GetFrameLevel() + 4)
 
         f.itemFrame = mod.ItemFrame:New(f)
         f.itemFrame:SetPoint("TOPLEFT", ITEM_FRAME_LEFT_INSET, -65)
@@ -424,7 +425,8 @@ do
         if not isBank then
             f.tokenBar = mod.TokenBar:New(f)
             f.tokenBar:SetSize(220, 19)
-            f.tokenBar:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 14, 8)
+            -- Sits to the right of the rarity filter, left of the money
+            f.tokenBar:SetPoint("LEFT", f.qualityFilter, "RIGHT", 12, 0)
             f.tokenBar:Refresh()
         end
 
@@ -775,7 +777,7 @@ do
         end
     end
 
-    -- Quality filter (off by default) sits bottom-center on the bottom band
+    -- Quality filter shares the bottom row with the money/token strip
     function InventoryFrame:UpdateBottomLayout()
         local cfg = mod.GetModuleConfig()
         if cfg and cfg.show_quality_filter then
@@ -783,6 +785,7 @@ do
         else
             self.qualityFilter:Hide()
         end
+        self:UpdateItemFrameSize()
     end
 
     function InventoryFrame:UpdateClampInsets()

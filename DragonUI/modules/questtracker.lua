@@ -112,11 +112,17 @@ end
 -- =============================================================================
 local watchFrameAttached = false
 
--- Height for quest display — must be set explicitly because SetUserPlaced(true)
--- prevents Blizzard's UIParent_ManageFramePositions from managing WatchFrame size.
--- Without this, WatchFrame_Update calculates maxHeight from tiny/stale bounds
--- and only shows 1-2 quests.
-local QUESTTRACKER_MAX_HEIGHT = 600
+-- Fallback max height for quest display — must be set explicitly because
+-- SetUserPlaced(true) prevents Blizzard's UIParent_ManageFramePositions from
+-- managing WatchFrame size. Without this, WatchFrame_Update calculates maxHeight
+-- from tiny/stale bounds and only shows 1-2 quests. Configurable via
+-- questtracker.max_height (default 400).
+local QUESTTRACKER_MAX_HEIGHT = 400
+
+local function GetQuestTrackerMaxHeight()
+    local cfg = addon.db and addon.db.profile and addon.db.profile.questtracker
+    return (cfg and cfg.max_height) or QUESTTRACKER_MAX_HEIGHT
+end
 
 local function ReplaceBlizzardFrame(frame)
     local watchFrame = WatchFrame
@@ -130,7 +136,7 @@ local function ReplaceBlizzardFrame(frame)
         watchFrame:SetUserPlaced(true)
         watchFrame:ClearAllPoints()
         watchFrame:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
-        watchFrame:SetHeight(QUESTTRACKER_MAX_HEIGHT)
+        watchFrame:SetHeight(GetQuestTrackerMaxHeight())
 
         -- Reposition WatchFrameLines below header (RetailUI pattern)
         -- This ensures quest lines render below the header background
@@ -152,7 +158,7 @@ local function ReplaceBlizzardFrame(frame)
         watchFrame:SetUserPlaced(true)
         watchFrame:ClearAllPoints()
         watchFrame:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
-        watchFrame:SetHeight(QUESTTRACKER_MAX_HEIGHT)
+        watchFrame:SetHeight(GetQuestTrackerMaxHeight())
     end
 end
 
@@ -297,7 +303,7 @@ local function ForceUpdateQuestTracker()
     -- This is critical: WatchFrame_Update calculates maxHeight from GetTop()-GetBottom(),
     -- and without explicit height, the frame shrinks to content → circular limitation.
     if WatchFrame then
-        WatchFrame:SetHeight(QUESTTRACKER_MAX_HEIGHT)
+        WatchFrame:SetHeight(GetQuestTrackerMaxHeight())
     end
 
     -- Never call WatchFrame_Update directly from addon code: that taints
@@ -684,7 +690,7 @@ local function InstallQuestTrackerHooks()
                 if not lineFrame then return end
 
                 -- Re-assert explicit height (Blizzard may have shrunk it to content)
-                watchFrame:SetHeight(QUESTTRACKER_MAX_HEIGHT)
+                watchFrame:SetHeight(GetQuestTrackerMaxHeight())
 
                 -- Re-assert WatchFrameLines position (Blizzard may reset it)
                 if WatchFrameHeader then
@@ -773,7 +779,7 @@ local function InstallQuestTrackerHooks()
                 end
                 -- Re-assert height in case Blizzard touched it
                 if WatchFrame then
-                    WatchFrame:SetHeight(QUESTTRACKER_MAX_HEIGHT)
+                    WatchFrame:SetHeight(GetQuestTrackerMaxHeight())
                 end
             end)
             if not ok and addon.debug then

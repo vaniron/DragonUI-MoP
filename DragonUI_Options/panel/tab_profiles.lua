@@ -39,6 +39,36 @@ local function BuildProfilesTab(scroll)
     C:AddLabel(current, LO["Active: "] .. "|cff2dd4bf" .. currentProfile .. "|r")
 
     -- ====================================================================
+    -- PROFILE ACTION HELPERS
+    -- ====================================================================
+    -- AceGUI fires widget callbacks through safecall, so any exception raised
+    -- here is swallowed and looks like "nothing happened". Run every DB
+    -- mutation under pcall and surface failures to chat instead.
+    local function SafeProfileCall(fn, successMsg)
+        local ok, err = pcall(fn)
+        if ok then
+            if successMsg then addon:Print(successMsg) end
+            return true
+        end
+        addon:Error((LO["Profile operation failed."] or "Profile operation failed: ") .. tostring(err))
+        return false
+    end
+
+    -- Rebuilding the tab synchronously from inside a dropdown's own
+    -- OnValueChanged releases the very widget that is still dispatching the
+    -- click. Defer the rebuild until the click fully unwinds, then offer the
+    -- reload so the new profile name shows even if "Not Now" is chosen.
+    local function FinishProfileAction(successMsg)
+        if successMsg then addon:Print(successMsg) end
+        addon.core:ScheduleTimer(function()
+            if addon.OptionsPanel and addon.OptionsPanel.SelectTab then
+                addon.OptionsPanel:SelectTab("profiles")
+            end
+        end, 0.1)
+        StaticPopup_Show("DRAGONUI_RELOAD_UI")
+    end
+
+    -- ====================================================================
     -- SELECT / CREATE PROFILE
     -- ====================================================================
     local selectSection = C:AddSection(scroll, LO["Switch or Create Profile"])
@@ -52,13 +82,30 @@ local function BuildProfilesTab(scroll)
         return profiles
     end
 
+    -- Copying a profile into itself is an error in AceDB, so it never makes
+    -- sense to offer the active profile as a copy source.
+    local function GetCopyProfiles()
+        local profiles = {}
+        local current = db:GetCurrentProfile()
+        for _, name in ipairs(db:GetProfiles()) do
+            if name ~= current then
+                profiles[name] = name
+            end
+        end
+        return profiles
+    end
+
     C:AddDropdown(selectSection, {
         label = LO["Select Profile"],
         getFunc = function() return db:GetCurrentProfile() end,
         setFunc = function(val)
-            db:SetProfile(val)
-            Panel:SelectTab("profiles")
-            StaticPopup_Show("DRAGONUI_RELOAD_UI")
+            if not val or val == "" then return end
+            if val == db:GetCurrentProfile() then return end
+            if SafeProfileCall(function()
+                db:SetProfile(val)
+            end) then
+                FinishProfileAction()
+            end
         end,
         values = GetProfileList(),
     })
@@ -69,10 +116,12 @@ local function BuildProfilesTab(scroll)
     newName:SetWidth(250)
     newName:SetCallback("OnEnterPressed", function(widget, event, text)
         if text and text ~= "" then
-            db:SetProfile(text)
-            widget:SetText("")
-            Panel:SelectTab("profiles")
-            StaticPopup_Show("DRAGONUI_RELOAD_UI")
+            if SafeProfileCall(function()
+                db:SetProfile(text)
+            end) then
+                widget:SetText("")
+                FinishProfileAction()
+            end
         end
     end)
     selectSection:AddChild(newName)
@@ -82,20 +131,24 @@ local function BuildProfilesTab(scroll)
     -- ====================================================================
     local copySection = C:AddSection(scroll, LO["Copy From"])
 
-    C:AddDescription(copySection, LO["Copies all settings from the selected profile into your current one."])
+    C:AddDescription(copySection, (LO["Copies all settings from the selected profile into your current one. Switch to the target profile first to push your current settings into another profile."] or LO["Copies all settings from the selected profile into your current one."]))
 
     C:AddDropdown(copySection, {
         label = LO["Copy From"],
         getFunc = function() return nil end,
         setFunc = function(val)
-            if val then
+            if not val or val == "" then return end
+            if val == db:GetCurrentProfile() then
+                addon:Print(LO["Warning:"] .. " " .. (LO["Cannot copy a profile into itself."] or "Cannot copy a profile into itself."))
+                return
+            end
+            if SafeProfileCall(function()
                 db:CopyProfile(val)
-                addon:Print(LO["Copied profile: "] .. val)
-                Panel:SelectTab("profiles")
-                StaticPopup_Show("DRAGONUI_RELOAD_UI")
+            end, (LO["Copied profile: "] or "Copied profile: ") .. val) then
+                FinishProfileAction()
             end
         end,
-        values = GetProfileList(),
+        values = GetCopyProfiles(),
     })
 
     -- ====================================================================

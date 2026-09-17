@@ -182,6 +182,18 @@ local function SlashCommandHandler(input)
         ShowStatus()
     elseif cmd == "debug" then
         SetDebugMode(arg)
+    elseif cmd == "panel" then
+        if addon.BlizzardArtDumpPanel then
+            addon.BlizzardArtDumpPanel(arg)
+        else
+            addon:Print("BlizzardArt panel tool not available")
+        end
+    elseif cmd == "talent" then
+        if addon.BlizzardArtDebugTalent then
+            addon.BlizzardArtDebugTalent()
+        else
+            addon:Print("BlizzardArt talent tool not available")
+        end
     elseif cmd == "kb" or cmd == "keybind" or cmd == "keybinds" then
         ToggleKeybindMode()
     elseif cmd == "version" or cmd == "ver" then

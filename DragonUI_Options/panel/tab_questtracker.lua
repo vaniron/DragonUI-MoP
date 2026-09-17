@@ -47,6 +47,16 @@ local function BuildQuesttrackerTab(scroll)
         callback = RefreshQT,
     })
 
+    C:AddSlider(section, {
+        label = LO["Max Height"],
+        desc = LO["Maximum height of the quest tracker in pixels."],
+        dbPath = "questtracker.max_height",
+        default = 400,
+        min = 150, max = 600, step = 10,
+        width = 200,
+        callback = RefreshQT,
+    })
+
     C:AddHeading(section, LO["Visibility"])
     C:AddVisibilityFadeToggles(section, {
         dbPrefix = "questtracker",

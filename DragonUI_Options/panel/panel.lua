@@ -54,7 +54,8 @@ local T = {
 -- ============================================================================
 
 local BD_MAIN = {
-    bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
+    -- Rock texture, same background the bag windows use (drawn at 80% alpha).
+    bgFile   = (addon._dir or "Interface\\AddOns\\DragonUI\\Textures\\") .. "UI\\ui-background-rock",
     edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
     tile = false, edgeSize = 1,
     insets = { left = 0, right = 0, top = 0, bottom = 0 },
@@ -127,7 +128,8 @@ local function CreatePanel()
     f:EnableMouse(true)
     f:SetClampedToScreen(true)
     f:SetBackdrop(BD_MAIN)
-    f:SetBackdropColor(unpack(T.bg))
+    -- Rock background at 80% alpha, same as the bag windows.
+    f:SetBackdropColor(1, 1, 1, 0.8)
     f:SetBackdropBorderColor(unpack(T.border))
 
     -- Drag
@@ -146,9 +148,7 @@ local function CreatePanel()
     titleBar:SetPoint("TOPLEFT", 1, -1)
     titleBar:SetPoint("TOPRIGHT", -1, -1)
     titleBar:SetHeight(32)
-    titleBar:SetBackdrop(BD_INNER)
-    titleBar:SetBackdropColor(unpack(T.titleBg))
-    titleBar:SetBackdropBorderColor(0, 0, 0, 0)
+    -- No backdrop: the panel's rock background shows through.
 
     local titleText = titleBar:CreateFontString(nil, "OVERLAY")
     SetSafeFont(titleText, 15, "OUTLINE")
@@ -397,7 +397,8 @@ local function CreatePanel()
     tabStrip:SetPoint("BOTTOMLEFT", 1, 1)
     tabStrip:SetWidth(140)
     tabStrip:SetBackdrop(BD_INNER)
-    tabStrip:SetBackdropColor(0.07, 0.07, 0.09, 1)
+    -- Transparent: the panel's rock background shows through.
+    tabStrip:SetBackdropColor(0, 0, 0, 0)
     tabStrip:SetBackdropBorderColor(0, 0, 0, 0)
     f.tabStrip = tabStrip
 
@@ -414,7 +415,8 @@ local function CreatePanel()
     content:SetPoint("TOPLEFT", tabStrip, "TOPRIGHT", 1, 0)
     content:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, 1)
     content:SetBackdrop(BD_INNER)
-    content:SetBackdropColor(unpack(T.contentBg))
+    -- Transparent: the panel's rock background shows through.
+    content:SetBackdropColor(0, 0, 0, 0)
     content:SetBackdropBorderColor(0, 0, 0, 0)
     f.content = content
 

@@ -420,11 +420,13 @@ local function CreateCarrierFrame(index)
     nameBG:SetTexture(NAME_BG_PTR_TEXTURE)
     nameBG:SetBlendMode("ADD")
     nameBG:SetSize(135, 18)
-    nameBG:SetPoint("BOTTOMLEFT", healthBar, "TOPLEFT", -2, -5)
+    nameBG:SetPoint("BOTTOMLEFT", healthBar, "TOPLEFT", -1, -2)
 
     -- Name text
     local nameText = carrier:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    nameText:SetPoint("BOTTOM", healthBar, "TOP", 4, 1)
+    nameText:SetPoint("BOTTOM", healthBar, "TOP", 4, 2)
+    local font, _, flags = nameText:GetFont()
+    nameText:SetFont(font, 10, flags)
 
     -- Faction icon (top-right, next to the portrait)
     local factionIcon = carrier:CreateTexture(nil, "OVERLAY", nil, 7)

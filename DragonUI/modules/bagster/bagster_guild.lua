@@ -364,7 +364,7 @@ do
         f:SetClampedToScreen(true)
         f:EnableMouse(true)
         f:SetMovable(true)
-        f:SetFrameStrata("HIGH")
+        f:SetFrameStrata("DIALOG")
         f:SetMinResize(384, 350)
         f:SetMaxResize(9999, 9999)
         f:SetHitRectInsets(0, 35, 0, 10)

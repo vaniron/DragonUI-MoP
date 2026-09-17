@@ -10,7 +10,7 @@ These are general-purpose functions that can be used by any module.
 local addon = select(2, ...)
 local L = addon.L
 
-addon.DB_SCHEMA_VERSION = 5
+addon.DB_SCHEMA_VERSION = 10
 addon.RELEASE_VERSION = GetAddOnMetadata("DragonUI", "Version") or "2.5"
 
 -- ============================================================================
@@ -1305,6 +1305,16 @@ function addon:ApplyDatabaseMigrations()
         ApplyMissingDefaults(self.defaults.profile, profile)
     end
 
+    -- Schema 10: the "New Blip Style" atlas does not match the MoP POI cells
+    -- (renders solid shapes). Force the native Blizzard style once for existing
+    -- profiles. Gated on the literal version so it never re-runs on later bumps.
+    if currentVersion < 10 then
+        local minimapCfg = rawget(profile, "minimap")
+        if type(minimapCfg) == "table" then
+            minimapCfg.blip_skin = false
+        end
+    end
+
     -- Combuctor → Bagster rename. AceDB already rawset a default `bagster` table at :New, so we
     -- can't gate on it being nil; the old `combuctor` table is the source of truth when present.
     local modules = rawget(profile, "modules")
@@ -1323,6 +1333,15 @@ function addon:ApplyDatabaseMigrations()
     -- profile.chat had no readers left; clear stored values now that the default is gone.
     if rawget(profile, "chat") ~= nil then
         profile.chat = nil
+    end
+
+    -- Channel tick marks: switch untouched profiles to the finer Bartender-style
+    -- defaults (hairline core at 1px/50%, mark height 60%) exactly once.
+    local castbarCfg = rawget(profile, "castbar")
+    local cbt = castbarCfg and rawget(castbarCfg, "channelTicks")
+    if cbt and cbt.thickness == 1 and cbt.heightPct == 100 then
+        cbt.thickness = 0.5
+        cbt.heightPct = 60
     end
 
     -- Extra bar slots moved to db.char; drop the profile-wide leftovers so alts stop inheriting them.

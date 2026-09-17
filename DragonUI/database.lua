@@ -188,6 +188,7 @@ local defaults = {
             y = -255,
             show_header = true,
             font_size = 12,      -- Point size for quest tracker text (WoW default: 11)
+            max_height = 400,    -- Max tracker height in px (was fixed 600; lower lets it sit at the bottom)
             show_on_hover = false,
             show_in_combat = false,
             hide_in_combat = false,
@@ -495,7 +496,7 @@ local defaults = {
         minimap = {
             scale = 1,
             border_alpha = 1,
-            blip_skin = true, -- true = new/modern style, false = old/classic Blizzard style
+            blip_skin = false, -- false = native Blizzard atlas (custom atlas is incompatible with MoP POI cells)
             tracking_icons = true,
             zoom_buttons = false,
             calendar = true,
@@ -565,6 +566,14 @@ local defaults = {
                 enabled = false,
                 color = { r = 0.9, g = 0.5, b = 0.2 },
                 alpha = 0.45,
+            },
+
+            -- CHANNEL TICK MARKS (Quartz-style flares shown at each tick while channeling)
+            channelTicks = {
+                enabled = true,
+                color = { r = 1, g = 0.82, b = 0.28 }, -- amber flare
+                alpha = 0.5, -- flare intensity (ADD, premultiplied)
+                glowSize = 20, -- flare width in pixels (Quartz default)
             },
 
             -- TARGET CASTBAR SETTINGS
@@ -1131,6 +1140,9 @@ local defaults = {
             },
             versioncheck = {
                 enabled = true, -- Cross-player version broadcast and update detection
+            },
+            blizzardart = {
+                enabled = true, -- DragonUI metal chrome on Blizzard panels (SpellBook, etc.)
             }
         },
 

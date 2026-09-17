@@ -183,6 +183,12 @@ local function GetLatencyConfig()
     return cfg and cfg.latency
 end
 
+-- Shared style for the vertical tick marks shown while channeling.
+local function GetChannelTicksConfig()
+    local cfg = addon.db and addon.db.profile and addon.db.profile.castbar
+    return (cfg and cfg.channelTicks) or {}
+end
+
 local function IsCompanionDetached(unitType)
     local unitframeCfg = addon.db and addon.db.profile and addon.db.profile.unitframe
     if not unitframeCfg then
@@ -721,12 +727,27 @@ end
 -- CHANNEL TICKS SYSTEM
 -- ============================================================================
 
+-- Quartz-style channel ticks: each tick is a single Blizzard cast-bar "spark"
+-- (a thin bright vertical flare), ADD blended, sized wider than the bar height
+-- so its glow extends above and below the bar in every direction.
+local SPARK_TEX = "Interface\\CastingBar\\UI-CastingBar-Spark"
+
+-- Declared before UpdateChannelTicks so that helper is a visible upvalue there.
+local function HideAllTicks(ticksTable)
+    for i = 1, MAX_TICKS do
+        local tick = ticksTable and ticksTable[i]
+        if tick then
+            tick:Hide()
+        end
+    end
+end
+
 local function CreateChannelTicks(parent, ticksTable)
     for i = 1, MAX_TICKS do
-        local tick = parent:CreateTexture('Tick' .. i, 'ARTWORK', nil, 1)
-        tick:SetTexture('Interface\\ChatFrame\\ChatFrameBackground')
-        tick:SetVertexColor(1, 0.82, 0.28, 0.7)
-        tick:SetSize(2, max(parent:GetHeight() - 2, 10))
+        local tick = parent:CreateTexture(nil, 'OVERLAY', nil, 1)
+        tick:SetTexture(SPARK_TEX)
+        tick:SetBlendMode('ADD')
+        tick:SetTexCoord(0, 1, 0, 1)
         tick:Hide()
         ticksTable[i] = tick
     end
@@ -734,35 +755,55 @@ end
 
 local function UpdateChannelTicks(parent, ticksTable, spellName)
     -- Hide all ticks first
-    for i = 1, MAX_TICKS do
-        if ticksTable[i] then
-            ticksTable[i]:Hide()
-        end
+    HideAllTicks(ticksTable)
+
+    local style = GetChannelTicksConfig()
+    if not style or style.enabled == false then
+        return
     end
-    
+
     local tickCount = CHANNEL_TICKS[spellName]
     if not tickCount or tickCount <= 1 then
         return
     end
-    
+
     local width = parent:GetWidth()
-    local height = parent:GetHeight()
-    local tickDelta = width / tickCount
-    
-    for i = 1, min(tickCount - 1, MAX_TICKS) do
-        if ticksTable[i] then
-            ticksTable[i]:SetSize(2, max(height - 2, 10))
-            ticksTable[i]:ClearAllPoints()
-            ticksTable[i]:SetPoint('CENTER', parent, 'LEFT', i * tickDelta, 0)
-            ticksTable[i]:Show()
+    local barHeight = parent:GetHeight()
+    local delta = width / tickCount
+
+    local color = style.color or {}
+    local r = color.r or 1
+    local g = color.g or 0.82
+    local b = color.b or 0.28
+    local alpha = style.alpha or 0.5
+
+    -- Quartz geometry: a ~20px-wide flare that is 2.2x the bar height so the
+    -- additive glow spills over the bar edges where it is actually visible.
+    local flareW = math.max(style.glowSize or 20, 2)
+    local flareH = math.max(barHeight * 2.2, 4)
+
+    for k = 1, math.min(tickCount, MAX_TICKS) do
+        local tick = ticksTable[k]
+        if tick then
+            tick:SetSize(flareW, flareH)
+            tick:ClearAllPoints()
+            tick:SetPoint('CENTER', parent, 'LEFT', delta * (k - 1), 0)
+            -- ADD ignores the vertex alpha on 5.4.8: premultiply RGB so the
+            -- Alpha slider scales the flare intensity.
+            tick:SetVertexColor(r * alpha, g * alpha, b * alpha, 1)
+            tick:Show()
         end
     end
 end
 
-local function HideAllTicks(ticksTable)
-    for i = 1, MAX_TICKS do
-        if ticksTable[i] then
-            ticksTable[i]:Hide()
+-- Tick drawing must never take the whole channel bar down with it: report any
+-- failure to chat instead of aborting the caller.
+local function SafeUpdateChannelTicks(parent, ticksTable, spellName)
+    local ok, err = pcall(UpdateChannelTicks, parent, ticksTable, spellName)
+    if not ok then
+        addon:Error("Channel tick marks error: " .. tostring(err))
+        if addon.Debug then
+            addon:Debug("UpdateChannelTicks stack: " .. tostring(debugstack and debugstack()))
         end
     end
 end
@@ -1314,7 +1355,6 @@ function CastbarModule:HandleCastStart_Simple(unitType, unit, isChanneling)
     if isChanneling then
         frames.castbar:SetStatusBarTexture(TEXTURES.channel)
         frames.castbar:SetStatusBarColor(unitType == "player" and 0 or 1, 1, unitType == "player" and 1 or 1, 1)
-        UpdateChannelTicks(frames.castbar, frames.ticks, spell)
         local texture = frames.castbar:GetStatusBarTexture()
         if texture then
             texture:SetVertexColor(1, 1, 1, 1)
@@ -1331,6 +1371,12 @@ function CastbarModule:HandleCastStart_Simple(unitType, unit, isChanneling)
     ForceStatusBarLayer(frames.castbar)
     
     RestoreCastbarVisibility(unitType)
+
+    -- Draw channel tick marks only after the bar is visible, and under pcall,
+    -- so a tick failure can never hide the whole channel bar.
+    if isChanneling then
+        SafeUpdateChannelTicks(frames.castbar, frames.ticks, spell)
+    end
 
     -- LATENCY: measure SENT→START delta and show indicator (player normal casts only)
     if unitType == "player" and not isChanneling then
@@ -1931,12 +1977,14 @@ function CastbarModule:RefreshCastbar(unitType)
         frames.spark:SetSize(sparkSize, sparkSize * 2)
     end
     
-    -- Update tick sizes
+    -- Refresh channel tick marks (style + enabled state; also live on an active channel)
     if frames.ticks then
-        for i = 1, MAX_TICKS do
-            if frames.ticks[i] then
-                local realHeight = frames.castbar:GetHeight()
-                frames.ticks[i]:SetSize(3, max(realHeight - 2, 10))
+        if GetChannelTicksConfig().enabled == false then
+            HideAllTicks(frames.ticks)
+        else
+            local castbar = frames.castbar
+            if castbar and castbar.channelingEx and castbar.spellName then
+                SafeUpdateChannelTicks(castbar, frames.ticks, castbar.spellName)
             end
         end
     end

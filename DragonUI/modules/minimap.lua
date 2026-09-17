@@ -38,6 +38,13 @@ local function IsModuleEnabled()
     return addon:IsModuleEnabled("minimap")
 end
 
+-- The micromenu module owns the dungeon/queue eye when it is enabled: it
+-- anchors QueueStatusMinimapButton to the micromenu. In that case the minimap
+-- module must not reparent/position/lock the eye.
+local function MicromenuOwnsLFGEye()
+    return addon.IsModuleEnabled and addon:IsModuleEnabled("micromenu") or false
+end
+
 local function IsMinimapSystemActive()
     return IsModuleEnabled() and MinimapModule.applied
 end
@@ -761,7 +768,7 @@ local function ReplaceBlizzardFrame(frame)
         MinimapModule.ReapplyMinimapTextures = function()
             local useNew = addon.db and addon.db.profile and addon.db.profile.minimap and
                                addon.db.profile.minimap.blip_skin
-            if useNew == nil then useNew = true end
+            if useNew == nil then useNew = false end
 
             local tex = useNew and "Interface\\AddOns\\DragonUI\\Textures\\Minimap\\objecticons" or
                             'Interface\\Minimap\\ObjectIcons'
@@ -1922,6 +1929,16 @@ local function StyleQueueStatusButton()
     local button = QueueStatusMinimapButton
     if not button then return end
 
+    -- The micromenu module anchors the eye to the micro menu; only keep the
+    -- native border hidden here and leave positioning/parenting to micromenu.
+    if MicromenuOwnsLFGEye() then
+        local border = button.Border or QueueStatusMinimapButtonBorder
+        if border and border.SetTexture then
+            border:SetTexture(nil)
+        end
+        return
+    end
+
     -- Anchor the eye directly to the minimap the first time we see it.
     -- The button is created dynamically in MoP, so this may run on first queue.
     MinimapModule:RegisterLFGEditorFrame()
@@ -2246,6 +2263,7 @@ end
 function MinimapModule:RegisterLFGEditorFrame()
     local lfgFrame = MiniMapLFGFrame or QueueStatusMinimapButton
     if not lfgFrame then return end
+    if MicromenuOwnsLFGEye() then return end -- micromenu anchors the eye
     if self.lfgFrameAnchored then return end  -- already processed
 
     -- Remember original state so we can restore it when the module is reset.
@@ -2464,7 +2482,7 @@ function MinimapModule:RestoreMinimapSystem()
 
     -- Restore the LFG/Battlefield eye to its original Blizzard state.
     local lfgFrame = MiniMapLFGFrame or QueueStatusMinimapButton
-    if lfgFrame then
+    if lfgFrame and not MicromenuOwnsLFGEye() then
         lfgFrame.DragonUI_Locked = false
         if lfgFrame.DragonUI_OrigSetPoint then
             lfgFrame.SetPoint = lfgFrame.DragonUI_OrigSetPoint
@@ -2815,7 +2833,7 @@ function MinimapModule:UpdateSettings()
         -- Apply blip texture based on user setting (new vs old style)
         local useNewBlipStyle = addon.db.profile.minimap.blip_skin
         if useNewBlipStyle == nil then
-            useNewBlipStyle = true -- Default to new style
+            useNewBlipStyle = false -- Default to native Blizzard style
         end
 
         local blipTexture = useNewBlipStyle and "Interface\\AddOns\\DragonUI\\Textures\\Minimap\\objecticons" or
@@ -3065,6 +3083,10 @@ function addon:RefreshMinimap()
             addon.MinimapDecorations:Refresh()
         end
     end
+
+    -- Re-assert the queue eye (no-op when the micromenu module owns it). This
+    -- also lets the eye return to the minimap after micromenu is disabled.
+    StyleQueueStatusButton()
 end
 
 -- Profile Callbacks for configuration change handling

@@ -48,6 +48,9 @@
     <!-- Dark Mode module -->
     <Script file="darkmode.lua"/>
     
+    <!-- Blizzard Panel Skin module (metal chrome on vanilla panels) -->
+    <Script file="blizzardart.lua"/>
+    
     <!-- Tooltip Enhancement module -->
     <Script file="tooltip.lua"/>
     

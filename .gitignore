@@ -27,3 +27,11 @@ DragonUI-WOTLK/
 # Temporary atlas tooling
 DragonUI/Textures/Micromenu/convert_blp.py
 DragonUI/Textures/Micromenu/uimicromenu2x.png
+
+# Local memory files
+DRAGONUI_PANEL_SKIN.md
+
+# Internal docs (maintainers only, not part of the public distribution)
+AGENTS.md
+MIGRATION_PLAN.md
+THIRD_PARTY_NOTICES.md

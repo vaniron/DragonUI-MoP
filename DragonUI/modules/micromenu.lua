@@ -33,6 +33,12 @@ local MicromenuModule = {
 local replacementButtons = {}
 MicromenuModule.replacementButtons = replacementButtons
 
+-- Anchors the dungeon/queue eye (QueueStatusMinimapButton) at the left end of
+-- the micromenu row. Declared early so LayoutMicroButtons can call it; assigned
+-- in the LFG section below.
+local AnchorLFGEye
+local ReleaseLFGEyeLocks
+
 -- Register with ModuleRegistry (if available)
 if addon.RegisterModule then
     addon:RegisterModule("micromenu", MicromenuModule,
@@ -572,8 +578,28 @@ end
 local function IsAnyShown(...)
     for i = 1, select("#", ...) do
         local f = select(i, ...)
-        if f and f.IsVisible and f:IsVisible() then
-            return true
+        if f then
+            -- pcall: some panels (e.g. StoreFrame) are forbidden frames and
+            -- error if addon-tainted code calls methods on them.
+            local ok, shown = pcall(f.IsShown, f)
+            if ok and shown then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-- Like IsAnyShown, but uses IsVisible so a container whose own shown flag stays
+-- set (e.g. LFDParentFrame inside PVEFrame) is not treated as open.
+local function IsAnyVisible(...)
+    for i = 1, select("#", ...) do
+        local f = select(i, ...)
+        if f then
+            local ok, visible = pcall(f.IsVisible, f)
+            if ok and visible then
+                return true
+            end
         end
     end
     return false
@@ -598,18 +624,22 @@ local function IsSpecialMicroButtonActive(button, buttonName)
     elseif key == "guild" or key == "socials" then
         return IsAnyShown(_G.GuildFrame)
     elseif key == "lfd" then
-        return IsAnyShown(_G.LFDParentFrame, _G.PVEFrame)
+        -- PVEFrame is the real MoP window; LFDParentFrame is an internal
+        -- container whose IsShown() stays true even when the window is closed.
+        return IsAnyVisible(_G.PVEFrame, _G.LFDParentFrame)
     elseif key == "collections" or key == "companions" then
         return IsAnyShown(_G.CollectionsJournal)
     elseif key == "ej" then
         return IsAnyShown(_G.EncounterJournal)
     elseif key == "store" then
-        return IsAnyShown(_G.StoreFrame)
+        -- StoreFrame is a forbidden frame; don't query it (no safe API in MoP).
+        return false
     elseif key == "mainmenu" then
         return IsAnyShown(_G.GameMenuFrame)
     elseif key == "pvp" then
-        -- GetChecked is the PvP flag, not panel-open; GetButtonState is also unreliable.
-        return IsAnyShown(_G.PVPFrame, _G.PVPParentFrame, _G.BattlefieldFrame, _G.HonorFrame)
+        -- GetChecked is the PvP flag, not panel-open; use effective visibility
+        -- on the real MoP window (PVPUIFrame) plus legacy fallbacks.
+        return IsAnyVisible(_G.PVPUIFrame, _G.PVPFrame, _G.PVPParentFrame)
     end
 
     return button.GetButtonState and button:GetButtonState() == "PUSHED"
@@ -632,7 +662,32 @@ end
 
 local function SyncSpecialMicroButtonState(button, buttonName)
     if button and button.dragonUIState then
-        ApplyMicroButtonPushed(button, IsSpecialMicroButtonActive(button, buttonName) and true or false)
+        local active = IsSpecialMicroButtonActive(button, buttonName) and true or false
+        if addon.debugMode and button.dragonUILastState ~= active then
+            addon:Print('DragonUI micromenu state: ' .. tostring(buttonName) .. ' -> ' .. tostring(active))
+        end
+        ApplyMicroButtonPushed(button, active)
+    end
+end
+
+-- Recompute the active/pushed state for every replacement micro button. Called
+-- from the UpdateMicroButtons hook and from the panel open/close hooks so
+-- closing a panel (Dungeon Finder, PvP, ...) always returns its button to
+-- normal. `tag` is optional and only used for debug logging.
+local DEBUG_STATE_KEYS = { lfd = true, pvp = true, talent = true }
+local function RefreshAllSpecialMicroButtonStates(tag)
+    if not MicromenuModule.applied or not IsModuleEnabled() then return end
+    for _, nativeButton in ipairs(GetMicroButtons()) do
+        local replacement = replacementButtons[nativeButton]
+        if replacement then
+            local key = replacement._dragonUIButtonKey
+            if tag and addon.debugMode and key and DEBUG_STATE_KEYS[key] then
+                addon:Print('DragonUI micromenu refresh [' .. tostring(tag) .. '] '
+                    .. tostring(key) .. ' active=' .. tostring(IsSpecialMicroButtonActive(replacement, key))
+                    .. ' last=' .. tostring(replacement.dragonUILastState))
+            end
+            SyncSpecialMicroButtonState(replacement, key)
+        end
     end
 end
 
@@ -1076,6 +1131,18 @@ local function RestoreMicromenuSystem()
         end
     end
 
+    -- When this module is disabled, release the eye and let the minimap module
+    -- (if enabled) anchor it again to its minimap holder.
+    if lfgFrame then
+        ReleaseLFGEyeLocks(lfgFrame)
+        if addon.MinimapModule then
+            addon.MinimapModule.lfgFrameAnchored = false
+        end
+        if addon.RefreshMinimapSystem then
+            addon:RefreshMinimapSystem()
+        end
+    end
+
     -- Restore LFG queue status frame
     local queueStatusFrame = QueueStatusFrame or LFDSearchStatus
     if queueStatusFrame and MicromenuModule.originalStates.QueueStatusFrame then
@@ -1157,14 +1224,45 @@ end
 -- WeakAuras/PlayerModel init can invalidate MicroButtonPortrait; re-apply on Blizzard refresh.
 if UpdateMicroButtons then
     hooksecurefunc("UpdateMicroButtons", function()
-        for _, nativeButton in ipairs(GetMicroButtons()) do
-            local replacement = replacementButtons[nativeButton]
-            if replacement then
-                SyncSpecialMicroButtonState(replacement, replacement._dragonUIButtonKey)
-            end
-        end
+        RefreshAllSpecialMicroButtonStates()
         UpdateCharacterPortraitVisibility()
     end)
+end
+
+-- Opening/closing a panel must always refresh the micro button states. Some
+-- MoP clients do not route every panel (Dungeon Finder, PvP) through
+-- UpdateMicroButtons on hide, which used to leave those buttons stuck active.
+if ShowUIPanel then
+    hooksecurefunc("ShowUIPanel", function() RefreshAllSpecialMicroButtonStates("ShowUIPanel") end)
+end
+if HideUIPanel then
+    hooksecurefunc("HideUIPanel", function() RefreshAllSpecialMicroButtonStates("HideUIPanel") end)
+end
+
+-- The panels that were getting stuck are opened/closed through their own toggle
+-- functions, not ShowUIPanel/HideUIPanel. Refresh after the visibility change.
+do
+    local toggleNames = {
+        "ToggleLFDParentFrame",
+        "TogglePVPUI",
+        "TogglePVPFrame",
+        "ToggleTalentFrame",
+        "ToggleCharacter",
+        "ToggleSpellBook",
+        "ToggleEncounterJournal",
+    }
+    for _, name in ipairs(toggleNames) do
+        if type(_G[name]) == "function" then
+            hooksecurefunc(name, function()
+                local tag = name
+                if C_Timer and C_Timer.After then
+                    C_Timer.After(0, function() RefreshAllSpecialMicroButtonStates(tag) end)
+                else
+                    RefreshAllSpecialMicroButtonStates(tag)
+                end
+            end)
+        end
+    end
 end
 
 
@@ -2153,6 +2251,7 @@ function addon.RefreshMicroMenuReplacementButtons()
     -- picked up after a profile change or module toggle.
     if not IsModuleEnabled() or not _G.pUiMicroMenu then return end
     LayoutMicroButtons()
+    AnchorLFGEye()
     UpdateCharacterPortraitVisibility()
     if addon.RefreshActionBarVisibility then
         addon.RefreshActionBarVisibility()
@@ -2969,6 +3068,97 @@ local function ReanchorLFDStatus()
     statusFrame:SetPoint(point, lfgFrame, relativePoint, xOff, yOff)
 end
 
+-- ============================================================================
+-- DUNGEON/QUEUE EYE (QueueStatusMinimapButton) ON THE MICROMENU
+-- The minimap module normally anchors this eye to the minimap. When the
+-- micromenu module is active we own it instead: parent it under pUiMicroMenu
+-- (so it follows the menu position, scale and editor) and anchor it at the
+-- left end of the button row. Native OnClick/visibility are left untouched.
+-- ============================================================================
+
+local LFG_EYE_GAP = 6   -- px between the eye and the first micro button
+local LFG_EYE_SIZE = 64 -- desired on-screen size of the eye (px)
+
+local function GetLFGEye()
+    return _G.QueueStatusMinimapButton or _G.MiniMapLFGFrame
+end
+
+-- Undo the SetPoint/ClearAllPoints locks the minimap module installed so the
+-- eye can be moved here (and so Blizzard can still reparent/reposition it).
+ReleaseLFGEyeLocks = function(eye)
+    if eye.DragonUI_OrigSetPoint then
+        eye.SetPoint = eye.DragonUI_OrigSetPoint
+        eye.DragonUI_OrigSetPoint = nil
+    end
+    if eye.DragonUI_OrigClearAllPoints then
+        eye.ClearAllPoints = eye.DragonUI_OrigClearAllPoints
+        eye.DragonUI_OrigClearAllPoints = nil
+    end
+    eye.DragonUI_Locked = false
+end
+
+-- Leftmost visible replacement micro button, used to anchor the eye at the
+-- start of the row regardless of invert_order / column settings.
+local function GetLeftmostReplacement()
+    local best, bestLeft
+    for _, rep in pairs(replacementButtons) do
+        if rep and rep.IsShown and rep:IsShown() and rep.GetLeft then
+            local l = rep:GetLeft()
+            if l and (not bestLeft or l < bestLeft) then
+                best, bestLeft = rep, l
+            end
+        end
+    end
+    return best
+end
+
+AnchorLFGEye = function()
+    if not IsModuleEnabled() then return end
+    local ok, err = pcall(function()
+        local menu = _G.pUiMicroMenu
+        local eye = GetLFGEye()
+        if not menu or not eye then return end
+
+        ReleaseLFGEyeLocks(eye)
+
+        -- Re-anchor the moment the eye is shown (queued) so it never flashes at
+        -- its old minimap position.
+        if not eye._duiMicromenuEyeHooked then
+            eye._duiMicromenuEyeHooked = true
+            eye:HookScript("OnShow", function()
+                if IsModuleEnabled() then AnchorLFGEye() end
+            end)
+        end
+
+        if eye:GetParent() ~= menu then
+            eye:SetParent(menu)
+        end
+
+        -- Option A: never scale the frame (scaling it makes the dropdown menu
+        -- and hover tooltip huge). Keep scale 1 and resize the button/icon.
+        if eye.SetScale then eye:SetScale(1) end
+        if eye.SetSize then eye:SetSize(LFG_EYE_SIZE, LFG_EYE_SIZE) end
+        local icon = eye.Eye or eye.Icon or _G.QueueStatusMinimapButtonIcon
+        if icon and icon.SetSize then
+            icon:SetSize(LFG_EYE_SIZE, LFG_EYE_SIZE)
+        end
+
+        -- Extreme left of the micro button row: just before the leftmost
+        -- button, vertically centered with it. Falls back to menu bottom-right.
+        local first = GetLeftmostReplacement()
+        eye:ClearAllPoints()
+        if first then
+            eye:SetPoint("RIGHT", first, "LEFT", -LFG_EYE_GAP, 0)
+        else
+            eye:SetPoint("BOTTOMRIGHT", menu, "BOTTOMRIGHT", -LFG_EYE_GAP, MICRO_LAYOUT_BASE_Y)
+        end
+    end)
+    if not ok and addon.debugMode then
+        addon:Print('DragonUI AnchorLFGEye error: ' .. tostring(err))
+    end
+end
+
+
 local function ApplyMicromenuSystem()
     if MicromenuModule.applied or not IsModuleEnabled() then
         return
@@ -3083,6 +3273,7 @@ local function ApplyMicromenuSystem()
     -- (StyleQueueStatusButton) to avoid overwriting the proper BG/LFG dropdown
     -- behaviour on MoP 5.4.8.
     ApplyLFGFrameStyle()
+    AnchorLFGEye()
 
     -- Keep Blizzard's LFD status text/layout ownership intact. We only
     -- re-anchor around the eye and avoid reparenting to prevent text regressions.
@@ -3094,8 +3285,28 @@ local function ApplyMicromenuSystem()
                       or (type(LFDSearchStatus_Update) == "function") and "LFDSearchStatus_Update"
                       or nil
     if updateFunc and not MicromenuModule.hooks[updateFunc] then
-        hooksecurefunc(updateFunc, ReanchorLFDStatus)
+        hooksecurefunc(updateFunc, function()
+            ReanchorLFDStatus()
+            AnchorLFGEye()
+        end)
         MicromenuModule.hooks[updateFunc] = true
+    end
+
+    -- Blizzard reparents/repositions the queue eye on queue/BG state changes;
+    -- re-anchor it to the micromenu whenever that can happen.
+    if not MicromenuModule.eventFrames.lfgEye then
+        local f = CreateFrame("Frame")
+        f:RegisterEvent("LFG_QUEUE_STATUS_UPDATE")
+        f:RegisterEvent("UPDATE_BATTLEFIELD_STATUS")
+        f:RegisterEvent("PLAYER_ENTERING_WORLD")
+        f:RegisterEvent("WORLD_MAP_UPDATE")
+        f:SetScript("OnEvent", function()
+            if IsModuleEnabled() then
+                AnchorLFGEye()
+                ReanchorLFDStatus()
+            end
+        end)
+        MicromenuModule.eventFrames.lfgEye = f
     end
 
     -- ============================================================================
